@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adescentralized Extension</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="logo">
+        <img src="../icons/icon-32.png" alt="Adescentralized" class="logo-icon" onerror="this.style.display='none'">
+        <h1>Adescentralized</h1>
+      </div>
+      <div class="status">
+        <span class="status-indicator" id="statusIndicator"></span>
+        <span class="status-text" id="statusText">Loading...</span>
+      </div>
+    </header>
+
+    <main class="popup-content">
+      <div class="toggle-section">
+        <label class="toggle-switch">
+          <input type="checkbox" id="extensionToggle">
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">Extension Enabled</span>
+      </div>
+
+      <div class="stats-section">
+        <div class="stat-item">
+          <span class="stat-label">Current Tab:</span>
+          <span class="stat-value" id="currentTab">Loading...</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Status:</span>
+          <span class="stat-value" id="extensionStatus">Active</span>
+        </div>
+      </div>
+
+      <div class="actions-section">
+        <button class="action-button primary" id="refreshButton">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Refresh
+        </button>
+        
+        <button class="action-button secondary" id="settingsButton">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="m12 1 1.36 4.68a5.5 5.5 0 0 0 3.96 3.96L22 12l-4.68 1.36a5.5 5.5 0 0 0-3.96 3.96L12 23l-1.36-4.68a5.5 5.5 0 0 0-3.96-3.96L2 12l4.68-1.36a5.5 5.5 0 0 0 3.96-3.96L12 1z"></path>
+          </svg>
+          Settings
+        </button>
+      </div>
+
+      <div class="info-section">
+        <div class="info-item">
+          <small class="info-text">Version 1.0.0</small>
+        </div>
+      </div>
+    </main>
+
+    <footer class="popup-footer">
+      <a href="#" class="footer-link" id="helpLink">Help</a>
+      <a href="#" class="footer-link" id="aboutLink">About</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
