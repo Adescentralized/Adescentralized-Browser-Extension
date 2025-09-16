@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellar Wallet Integration Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .connected { background-color: #e8f5e8; color: #2e7d32; }
+        .disconnected { background-color: #ffebee; color: #d32f2f; }
+        .info { background-color: #e3f2fd; color: #1976d2; }
+        button {
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #1565c0;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .result {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌟 Stellar Wallet Integration Demo</h1>
+    <p>This page demonstrates how websites can integrate with your Stellar Web3 Extension.</p>
+
+    <div class="card">
+        <h2>Connection Status</h2>
+        <div id="connectionStatus" class="status disconnected">
+            Extension not detected or not connected
+        </div>
+        <button id="connectBtn">Connect Wallet</button>
+        <button id="disconnectBtn" disabled>Disconnect</button>
+    </div>
+
+    <div class="card">
+        <h2>Account Information</h2>
+        <div id="accountInfo" class="info">
+            Connect your wallet to see account information
+        </div>
+        <button id="getBalanceBtn" disabled>Get Balance</button>
+        <div id="balanceResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="card">
+        <h2>Send Payment</h2>
+        <div class="form-group">
+            <label for="destinationInput">Destination Public Key:</label>
+            <input type="text" id="destinationInput" placeholder="GCK..." />
+        </div>
+        <div class="form-group">
+            <label for="amountInput">Amount (XLM):</label>
+            <input type="number" id="amountInput" step="0.0001" min="0" placeholder="10.0" />
+        </div>
+        <div class="form-group">
+            <label for="memoInput">Memo (optional):</label>
+            <input type="text" id="memoInput" placeholder="Payment memo" />
+        </div>
+        <button id="sendPaymentBtn" disabled>Send Payment</button>
+        <div id="paymentResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="card">
+        <h2>Extension Events</h2>
+        <div id="eventsLog" class="result">
+            Events will appear here...
+        </div>
+        <button onclick="clearEvents()">Clear Events</button>
+    </div>
+
+    <script>
+        let stellarWallet = null;
+        let connectedAccount = null;
+
+        // Wait for wallet to be available
+        function initializeWallet() {
+            if (window.stellarWallet) {
+                stellarWallet = window.stellarWallet;
+                logEvent('✅ Stellar Wallet Provider detected');
+                setupEventListeners();
+                checkConnection();
+            } else {
+                logEvent('❌ Stellar Wallet Provider not found');
+                setTimeout(initializeWallet, 1000); // Retry in 1 second
+            }
+        }
+
+        function setupEventListeners() {
+            stellarWallet.on('connect', (data) => {
+                logEvent('🔗 Wallet connected: ' + JSON.stringify(data, null, 2));
+                updateConnectionStatus(true, data);
+            });
+
+            stellarWallet.on('disconnect', () => {
+                logEvent('🔌 Wallet disconnected');
+                updateConnectionStatus(false);
+            });
+
+            stellarWallet.on('accountsChanged', (accounts) => {
+                logEvent('👤 Account changed: ' + JSON.stringify(accounts, null, 2));
+            });
+        }
+
+        async function checkConnection() {
+            if (stellarWallet && stellarWallet.isWalletConnected()) {
+                const publicKey = await stellarWallet.getPublicKey();
+                updateConnectionStatus(true, { publicKey });
+            }
+        }
+
+        function updateConnectionStatus(connected, accountData = null) {
+            const statusDiv = document.getElementById('connectionStatus');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const getBalanceBtn = document.getElementById('getBalanceBtn');
+            const sendPaymentBtn = document.getElementById('sendPaymentBtn');
+            const accountInfoDiv = document.getElementById('accountInfo');
+
+            if (connected && accountData) {
+                statusDiv.textContent = `Connected to: ${accountData.publicKey}`;
+                statusDiv.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                getBalanceBtn.disabled = false;
+                sendPaymentBtn.disabled = false;
+                connectedAccount = accountData;
+                
+                accountInfoDiv.innerHTML = `
+                    <strong>Public Key:</strong> ${accountData.publicKey}<br>
+                    <strong>Email:</strong> ${accountData.email || 'N/A'}<br>
+                    <strong>Name:</strong> ${accountData.name || 'N/A'}
+                `;
+            } else {
+                statusDiv.textContent = 'Extension not connected';
+                statusDiv.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                getBalanceBtn.disabled = true;
+                sendPaymentBtn.disabled = true;
+                connectedAccount = null;
+                
+                accountInfoDiv.textContent = 'Connect your wallet to see account information';
+                accountInfoDiv.className = 'info';
+            }
+        }
+
+        async function connectWallet() {
+            try {
+                logEvent('🔄 Attempting to connect wallet...');
+                const result = await stellarWallet.connect();
+                logEvent('✅ Connection successful: ' + JSON.stringify(result, null, 2));
+            } catch (error) {
+                logEvent('❌ Connection failed: ' + error.message);
+                alert('Failed to connect: ' + error.message);
+            }
+        }
+
+        function disconnectWallet() {
+            if (stellarWallet) {
+                stellarWallet.disconnect();
+                updateConnectionStatus(false);
+            }
+        }
+
+        async function getBalance() {
+            try {
+                logEvent('🔄 Getting wallet balance...');
+                const balance = await stellarWallet.getBalance();
+                logEvent('💰 Balance retrieved: ' + JSON.stringify(balance, null, 2));
+                
+                document.getElementById('balanceResult').style.display = 'block';
+                document.getElementById('balanceResult').textContent = JSON.stringify(balance, null, 2);
+            } catch (error) {
+                logEvent('❌ Failed to get balance: ' + error.message);
+                alert('Failed to get balance: ' + error.message);
+            }
+        }
+
+        async function sendPayment() {
+            const destination = document.getElementById('destinationInput').value;
+            const amount = document.getElementById('amountInput').value;
+            const memo = document.getElementById('memoInput').value;
+
+            if (!destination || !amount) {
+                alert('Please fill in destination and amount');
+                return;
+            }
+
+            try {
+                logEvent('🔄 Sending payment...');
+                const result = await stellarWallet.sendPayment(destination, amount, memo || undefined);
+                logEvent('✅ Payment sent: ' + JSON.stringify(result, null, 2));
+                
+                document.getElementById('paymentResult').style.display = 'block';
+                document.getElementById('paymentResult').textContent = JSON.stringify(result, null, 2);
+                
+                // Clear form
+                document.getElementById('destinationInput').value = '';
+                document.getElementById('amountInput').value = '';
+                document.getElementById('memoInput').value = '';
+            } catch (error) {
+                logEvent('❌ Payment failed: ' + error.message);
+                alert('Payment failed: ' + error.message);
+            }
+        }
+
+        function logEvent(message) {
+            const eventsLog = document.getElementById('eventsLog');
+            const timestamp = new Date().toLocaleTimeString();
+            eventsLog.textContent += `[${timestamp}] ${message}\n`;
+            eventsLog.scrollTop = eventsLog.scrollHeight;
+        }
+
+        function clearEvents() {
+            document.getElementById('eventsLog').textContent = 'Events cleared...\n';
+        }
+
+        // Event listeners
+        document.getElementById('connectBtn').addEventListener('click', connectWallet);
+        document.getElementById('disconnectBtn').addEventListener('click', disconnectWallet);
+        document.getElementById('getBalanceBtn').addEventListener('click', getBalance);
+        document.getElementById('sendPaymentBtn').addEventListener('click', sendPayment);
+
+        // Custom event listener for when stellar wallet is ready
+        window.addEventListener('stellarWalletReady', (event) => {
+            logEvent('🌟 Stellar Wallet Ready event received');
+            initializeWallet();
+        });
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            logEvent('📄 Page loaded, checking for Stellar Wallet...');
+            initializeWallet();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellar Wallet Extension Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .logs {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Stellar Wallet Extension Test</h1>
+        
+        <div id="extension-status" class="status info">
+            Verificando extensão...
+        </div>
+        
+        <div id="connection-status" class="status info">
+            Status da conexão: Não conectado
+        </div>
+        
+        <div id="wallet-info" style="display: none;">
+            <h3>Informações da Carteira:</h3>
+            <p><strong>Chave Pública:</strong> <span id="public-key">--</span></p>
+            <p><strong>Email:</strong> <span id="email">--</span></p>
+            <p><strong>Nome:</strong> <span id="name">--</span></p>
+            <p><strong>Saldo:</strong> <span id="balance">-- XLM</span></p>
+        </div>
+        
+        <div>
+            <button id="connect-btn">Conectar Carteira</button>
+            <button id="balance-btn" disabled>Obter Saldo</button>
+            <button id="test-payment-btn" disabled>Teste de Pagamento</button>
+            <button id="clear-logs-btn">Limpar Logs</button>
+        </div>
+        
+        <div id="logs" class="logs"></div>
+    </div>
+
+    <script>
+        const logsContainer = document.getElementById('logs');
+        let stellarWallet = null;
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.createElement('div');
+            logDiv.innerHTML = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logDiv.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#333';
+            logsContainer.appendChild(logDiv);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+        
+        // Create our own wallet interface that uses postMessage
+        class StellarWalletInterface {
+            constructor() {
+                this.isConnected = false;
+                this.currentAccount = null;
+                addLog('Stellar Wallet Interface created');
+            }
+            
+            async connect() {
+                return new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Connection timeout - extension not responding'));
+                    }, 10000);
+                    
+                    window.postMessage({
+                        type: 'STELLAR_WALLET_REQUEST',
+                        method: 'connect',
+                        id: Date.now()
+                    }, '*');
+                    
+                    const handler = (event) => {
+                        if (event.data.type === 'STELLAR_WALLET_RESPONSE' && event.data.method === 'connect') {
+                            clearTimeout(timeout);
+                            window.removeEventListener('message', handler);
+                            if (event.data.success) {
+                                this.isConnected = true;
+                                this.currentAccount = event.data.data.publicKey;
+                                resolve(event.data.data);
+                            } else {
+                                reject(new Error(event.data.error));
+                            }
+                        }
+                    };
+                    
+                    window.addEventListener('message', handler);
+                });
+            }
+            
+            async getBalance() {
+                return new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Balance request timeout'));
+                    }, 10000);
+                    
+                    window.postMessage({
+                        type: 'STELLAR_WALLET_REQUEST',
+                        method: 'getBalance',
+                        id: Date.now()
+                    }, '*');
+                    
+                    const handler = (event) => {
+                        if (event.data.type === 'STELLAR_WALLET_RESPONSE' && event.data.method === 'getBalance') {
+                            clearTimeout(timeout);
+                            window.removeEventListener('message', handler);
+                            if (event.data.success) {
+                                // Fix: Access the balance correctly from the nested structure
+                                const balanceData = event.data.data?.balance || event.data.data;
+                                resolve(balanceData);
+                            } else {
+                                reject(new Error(event.data.error));
+                            }
+                        }
+                    };
+                    
+                    window.addEventListener('message', handler);
+                });
+            }
+            
+            async sendPayment(destination, amount, memo) {
+                return new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Payment request timeout'));
+                    }, 30000);
+                    
+                    window.postMessage({
+                        type: 'STELLAR_WALLET_REQUEST',
+                        method: 'sendPayment',
+                        data: { destination, amount, memo },
+                        id: Date.now()
+                    }, '*');
+                    
+                    const handler = (event) => {
+                        if (event.data.type === 'STELLAR_WALLET_RESPONSE' && event.data.method === 'sendPayment') {
+                            clearTimeout(timeout);
+                            window.removeEventListener('message', handler);
+                            if (event.data.success) {
+                                resolve(event.data.data);
+                            } else {
+                                reject(new Error(event.data.error));
+                            }
+                        }
+                    };
+                    
+                    window.addEventListener('message', handler);
+                });
+            }
+            
+            isWalletConnected() {
+                return this.isConnected;
+            }
+        }
+        
+        function updateStatus() {
+            const extensionStatus = document.getElementById('extension-status');
+            const connectionStatus = document.getElementById('connection-status');
+            
+            // Check for extension using the new detection method
+            if (window.isStellarWalletInstalled || stellarWallet) {
+                extensionStatus.className = 'status success';
+                extensionStatus.textContent = '✅ Extensão detectada e carregada!';
+                
+                if (stellarWallet && stellarWallet.isWalletConnected()) {
+                    connectionStatus.className = 'status success';
+                    connectionStatus.textContent = '✅ Carteira conectada';
+                    document.getElementById('balance-btn').disabled = false;
+                    document.getElementById('test-payment-btn').disabled = false;
+                } else {
+                    connectionStatus.className = 'status info';
+                    connectionStatus.textContent = '⏳ Carteira não conectada';
+                }
+            } else {
+                extensionStatus.className = 'status error';
+                extensionStatus.textContent = '❌ Extensão não encontrada. Certifique-se de que está instalada e ativa.';
+                connectionStatus.className = 'status error';
+                connectionStatus.textContent = '❌ Sem acesso à carteira';
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('connect-btn').addEventListener('click', async () => {
+            addLog(`Debug: stellarWallet = ${stellarWallet ? 'existe' : 'null'}`, 'info');
+            addLog(`Debug: window.isStellarWalletInstalled = ${window.isStellarWalletInstalled}`, 'info');
+            
+            if (stellarWallet || window.isStellarWalletInstalled) {
+                try {
+                    if (!stellarWallet) {
+                        addLog('Criando nova instância do StellarWalletInterface...', 'info');
+                        stellarWallet = new StellarWalletInterface();
+                    }
+                    
+                    addLog('Tentando conectar carteira...', 'info');
+                    const result = await stellarWallet.connect();
+                    
+                    addLog(`Carteira conectada com sucesso!`, 'success');
+                    addLog(`Chave pública: ${result.publicKey}`, 'info');
+                    
+                    document.getElementById('wallet-info').style.display = 'block';
+                    document.getElementById('public-key').textContent = result.publicKey;
+                    document.getElementById('email').textContent = result.email || '--';
+                    document.getElementById('name').textContent = result.name || '--';
+                    
+                    updateStatus();
+                } catch (error) {
+                    addLog(`Erro ao conectar: ${error.message}`, 'error');
+                }
+            } else {
+                addLog('Extensão não encontrada!', 'error');
+            }
+        });
+        
+        document.getElementById('balance-btn').addEventListener('click', async () => {
+            if (!stellarWallet) {
+                addLog('Carteira não conectada', 'error');
+                return;
+            }
+            
+            try {
+                addLog('Obtendo saldo...', 'info');
+                const balanceData = await stellarWallet.getBalance();
+                const nativeBalance = balanceData.native || balanceData || '0';
+                document.getElementById('balance').textContent = `${nativeBalance} XLM`;
+                addLog(`Saldo obtido: ${nativeBalance} XLM`, 'success');
+            } catch (error) {
+                addLog(`Erro ao obter saldo: ${error.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('test-payment-btn').addEventListener('click', async () => {
+            if (!stellarWallet) {
+                addLog('Carteira não conectada', 'error');
+                return;
+            }
+            
+            try {
+                addLog('Enviando pagamento de teste (0.001 XLM)...', 'info');
+                const result = await stellarWallet.sendPayment(
+                    'GCDZ4ZTAJDIQXF3FGPCBCJXN2X4DF7L4IVITMPPYFUZHVP6OX23ATAWZ',
+                    '0.001',
+                    'Teste de pagamento'
+                );
+                addLog(`Pagamento enviado! Hash: ${result.transactionHash}`, 'success');
+            } catch (error) {
+                addLog(`Erro no pagamento: ${error.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('clear-logs-btn').addEventListener('click', () => {
+            logsContainer.innerHTML = '';
+            addLog('Logs limpos', 'info');
+        });
+        
+        // Listen for extension events
+        window.addEventListener('stellarWalletInstalled', (event) => {
+            addLog('Evento stellarWalletInstalled recebido!', 'success');
+            addLog(`Extensão detectada: v${event.detail.version}`, 'info');
+            
+            // Automatically create wallet interface when extension is detected
+            if (!stellarWallet) {
+                stellarWallet = new StellarWalletInterface();
+                addLog('StellarWalletInterface criada automaticamente', 'info');
+                
+                // Auto-connect wallet immediately
+                autoConnectWallet();
+            }
+            
+            updateStatus();
+        });
+        
+        // Function to auto-connect wallet
+        async function autoConnectWallet() {
+            try {
+                addLog('🔄 Conectando carteira automaticamente...', 'info');
+                const result = await stellarWallet.connect();
+                
+                addLog(`✅ Carteira conectada automaticamente!`, 'success');
+                addLog(`Chave pública: ${result.publicKey}`, 'info');
+                
+                document.getElementById('wallet-info').style.display = 'block';
+                document.getElementById('public-key').textContent = result.publicKey;
+                document.getElementById('email').textContent = result.email || '--';
+                document.getElementById('name').textContent = result.name || '--';
+                
+                // Auto-load balance after connecting
+                setTimeout(async () => {
+                    try {
+                        addLog('🔄 Carregando saldo automaticamente...', 'info');
+                        const balanceData = await stellarWallet.getBalance();
+                        const nativeBalance = balanceData.native || balanceData || '0';
+                        document.getElementById('balance').textContent = `${nativeBalance} XLM`;
+                        addLog(`💰 Saldo carregado: ${nativeBalance} XLM`, 'success');
+                    } catch (error) {
+                        addLog(`❌ Erro ao carregar saldo: ${error.message}`, 'error');
+                    }
+                }, 1000);
+                
+                updateStatus();
+            } catch (error) {
+                addLog(`❌ Erro na conexão automática: ${error.message}`, 'error');
+            }
+        }
+        
+        // Legacy event listener
+        window.addEventListener('stellarWalletReady', (event) => {
+            addLog('Evento stellarWalletReady recebido!', 'success');
+            updateStatus();
+        });
+        
+        // Initial status check
+        addLog('Página carregada, verificando extensão...', 'info');
+        
+        // Check for extension using the new detection method
+        const checkInterval = setInterval(() => {
+            if (window.isStellarWalletInstalled) {
+                addLog('Extensão detectada via propriedade!', 'success');
+                updateStatus();
+                clearInterval(checkInterval);
+            }
+        }, 1000);
+        
+        // Stop checking after 10 seconds
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            if (!window.isStellarWalletInstalled) {
+                addLog('Timeout: Extensão não encontrada após 10 segundos', 'error');
+                updateStatus();
+            }
+        }, 10000);
+        
+        updateStatus();
+    </script>
+</body>
+</html>

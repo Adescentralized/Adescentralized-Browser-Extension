@@ -1,0 +1,172 @@
+/* Balance.css */
+.balance-container {
+  padding: 20px;
+  height: 460px;
+  display: flex;
+  flex-direction: column;
+}
+
+.balance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.balance-title {
+  margin: 0;
+  color: #1976d2;
+  font-size: 18px;
+}
+
+.logout-button {
+  padding: 6px 12px;
+  background-color: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.user-info-card {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.user-email-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.user-email {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.wallet-address {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
+}
+
+.balance-card {
+  flex: 1;
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.balance-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.balance-subtitle {
+  margin: 0;
+  font-size: 16px;
+}
+
+.refresh-button {
+  padding: 4px 8px;
+  background-color: transparent;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.refresh-button:disabled {
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 14px;
+  margin-bottom: 15px;
+  padding: 8px;
+  background-color: #ffebee;
+  border-radius: 4px;
+}
+
+.native-balance {
+  margin-bottom: 15px;
+}
+
+.balance-amount {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1976d2;
+}
+
+.balance-label {
+  font-size: 12px;
+  color: #666;
+}
+
+.assets-section {
+  margin-top: 15px;
+}
+
+.assets-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.asset-item {
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.no-balance {
+  color: #666;
+  text-align: center;
+  padding: 20px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.stats-button {
+  flex: 1;
+  padding: 12px;
+  background-color: #f5f5f5;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.withdraw-button {
+  flex: 1;
+  padding: 12px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.withdraw-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.no-user-data {
+  padding: 20px;
+  text-align: center;
+}
